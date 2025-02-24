@@ -21,7 +21,7 @@ public class UserDetail implements Serializable {
     @Column(name = "user_detail_id", nullable = false)
     private String userDetailId;
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     @JoinColumn(name = "user_id")
     private User user;
 

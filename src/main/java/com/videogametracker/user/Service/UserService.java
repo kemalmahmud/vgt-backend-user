@@ -58,7 +58,6 @@ public class UserService {
         try {
             // save to users table
             var newUser = User.builder()
-                    .userId(UUID.randomUUID().toString())
                     .username(request.getUsername())
                     .password(request.getPassword())
                     .isDeleted(false).build();
@@ -66,7 +65,6 @@ public class UserService {
 
             //save to user detail
             var newUserDetail = UserDetail.builder()
-                    .userDetailId(UUID.randomUUID().toString())
                     .user(newUser)
                     .name(request.getName())
                     .email(request.getEmail())
