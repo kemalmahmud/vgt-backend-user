@@ -4,9 +4,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.videogametracker.user.Model.User;
 import com.videogametracker.user.Model.UserDetail;
+import com.videogametracker.user.Model.dto.request.LoginRequest;
 import com.videogametracker.user.Model.dto.request.UserDetailRequest;
 import com.videogametracker.user.Model.dto.request.RegisterRequest;
 import com.videogametracker.user.Model.dto.response.BaseResponse;
+import com.videogametracker.user.Model.dto.response.LoginResponse;
 import com.videogametracker.user.Model.dto.response.UserDetailResponse;
 import com.videogametracker.user.Model.dto.response.RegisterResponse;
 import com.videogametracker.user.Repository.UserDetailRepository;
@@ -39,14 +41,14 @@ public class UserService {
         BaseResponse resp = new BaseResponse();
         try {
             var userId = request.getUserId();
-            var userInfo = userDetailRepository.findByUserId(userId).orElse(null);
+            var userInfo = userRepository.findById(userId).orElse(null);
             if(userInfo == null) throw new Exception("User profile not found");
             UserDetailResponse userDetailResponse = UserDetailResponse.builder()
-                    .name(userInfo.getName())
-                    .email(userInfo.getEmail())
-                    .userId(userInfo.getUser().getUserId())
-                    .description(userInfo.getDescription())
-                    .username(userInfo.getUser().getUsername())
+                    .name(userInfo.getUserDetail().getName())
+                    .email(userInfo.getUserDetail().getEmail())
+                    .userId(userInfo.getUserId())
+                    .description(userInfo.getUserDetail().getDescription())
+                    .username(userInfo.getUsername())
                     .build();
             resp.setData(userDetailResponse);
             resp.setMessage("Success retrieving user profile");
@@ -57,6 +59,32 @@ public class UserService {
             resp.setMessage(e.getMessage());
             resp.setStatus(HttpStatus.BAD_REQUEST.value());
             return ResponseEntity.badRequest().body(resp);
+        }
+    }
+
+    @KafkaListener(topics = "login-request-topic", groupId = "user-service-group")
+    public void getLoginInfo(String requestObj) throws JsonProcessingException {
+        LoginResponse response = new LoginResponse();
+        try {
+            log.info("Start retrieving user");
+            var request = objectMapper.readValue(requestObj, LoginRequest.class);
+            response.setCorrelationId(request.getCorrelationId());
+            var user = userRepository.findByUsername(request.getUsername()).orElse(null);
+            if(user == null) {
+                response.setErrorMessage("User not found");
+            } else {
+                response.setUserId(user.getUserId());
+                response.setUsername(user.getUsername());
+                response.setPassword(user.getPassword());
+            }
+
+            log.info("Retrieving user success");
+            var respString = objectMapper.writeValueAsString(response);
+
+            kafkaTemplate.send("login-response-topic", respString);
+        }
+        catch(Exception e) {
+            log.error("error in getUserByUsername: " + e.getMessage());
         }
     }
 
@@ -91,7 +119,7 @@ public class UserService {
             kafkaTemplate.send("register-response-topic", respString);
         }
         catch (Exception e) {
-            log.error("error when register user: " + e.getMessage());
+            log.error("error in registerUser: " + e.getMessage());
             throw e;
         }
     }
