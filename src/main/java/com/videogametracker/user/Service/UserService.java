@@ -1,5 +1,7 @@
 package com.videogametracker.user.Service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.videogametracker.user.Model.User;
 import com.videogametracker.user.Model.UserDetail;
 import com.videogametracker.user.Model.dto.request.UserDetailRequest;
@@ -14,6 +16,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
@@ -24,9 +28,12 @@ public class UserService {
 
     @Autowired
     private UserRepository userRepository;
-
     @Autowired
     private UserDetailRepository userDetailRepository;
+    @Autowired
+    private KafkaTemplate kafkaTemplate;
+    @Autowired
+    private ObjectMapper objectMapper;
 
     public ResponseEntity<BaseResponse> getUserDetail(UserDetailRequest request) {
         BaseResponse resp = new BaseResponse();
@@ -54,8 +61,10 @@ public class UserService {
     }
 
     @Transactional
-    public RegisterResponse registerUser(RegisterRequest request) {
+    @KafkaListener(topics = "register-request-topic", groupId = "user-service-group")
+    public void registerUser(String requestObj) throws JsonProcessingException {
         try {
+            var request = objectMapper.readValue(requestObj, RegisterRequest.class);
             // save to users table
             var newUser = User.builder()
                     .username(request.getUsername())
@@ -73,7 +82,13 @@ public class UserService {
 
             log.info("Register success");
 
-            return RegisterResponse.builder().userId(newUser.getUserId()).username(newUser.getUsername()).build();
+            var response = RegisterResponse.builder()
+                    .correlationId(request.getCorrelationId())
+                    .userId(newUser.getUserId()).build();
+
+            var respString = objectMapper.writeValueAsString(response);
+
+            kafkaTemplate.send("register-response-topic", respString);
         }
         catch (Exception e) {
             log.error("error when register user: " + e.getMessage());

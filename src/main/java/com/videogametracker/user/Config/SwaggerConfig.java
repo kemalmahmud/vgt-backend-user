@@ -14,7 +14,7 @@ public class SwaggerConfig {
         return new OpenAPI()
                 .info(new Info()
                         .title("API Documentation")
-                        .description("Dokumentasi API untuk aplikasi Spring Boot")
+                        .description("Dokumentasi API untuk Video Game Tracker - User Service")
                         .version("v1.0")
                         .license(new License().name("Apache 2.0").url("http://springdoc.org")))
                 .externalDocs(new ExternalDocumentation()
