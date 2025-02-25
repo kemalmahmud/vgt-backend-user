@@ -13,5 +13,5 @@ public class RegisterResponse {
     private String userId;
 
     // kafka related
-    private String correlationId;
+//    private String correlationId;
 }

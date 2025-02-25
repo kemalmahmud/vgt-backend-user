@@ -17,5 +17,5 @@ public class RegisterRequest {
     private String description;
 
     // kafka related
-    private String correlationId;
+//    private String correlationId;
 }

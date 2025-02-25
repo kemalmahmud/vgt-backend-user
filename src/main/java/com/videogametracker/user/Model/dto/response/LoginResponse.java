@@ -17,5 +17,5 @@ public class LoginResponse {
     private String token;
 
     // kafka related
-    private String correlationId;
+//    private String correlationId;
 }
