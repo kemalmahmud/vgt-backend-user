@@ -15,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -24,6 +25,8 @@ public class UserService {
     private UserRepository userRepository;
     @Autowired
     private UserDetailRepository userDetailRepository;
+    @Autowired
+    private KafkaTemplate kafkaTemplate;
 
     public ResponseEntity<BaseResponse> getUserDetail(UserDetailRequest request) {
         BaseResponse resp = new BaseResponse();
@@ -92,6 +95,9 @@ public class UserService {
             userDetailRepository.save(newUserDetail);
 
             log.info("Register success");
+
+            // create mandatory user collection ke collection service
+            kafkaTemplate.send("initial-collection-topic", newUser.getUserId());
 
             return RegisterResponse.builder()
                     .userId(newUser.getUserId()).build();

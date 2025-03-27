@@ -30,8 +30,7 @@ public class User implements Serializable {
     @Column(name = "is_deleted")
     private Boolean isDeleted;
 
-    @OneToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
-    @JoinColumn(name = "user_id")
+    @OneToOne(mappedBy = "user", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     private UserDetail userDetail;
 
 }
